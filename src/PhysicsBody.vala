@@ -19,6 +19,7 @@ namespace Physv {
 
         public float density { public get; private set; }
         public float mass { public get; private set; }
+        public float inverse_mass { public get; private set; }
         public float restitution { public get; private set; }
         public float area { public get; private set; }
 
@@ -56,6 +57,13 @@ namespace Physv {
             this.height = height;
 
             this.shape_type = shape_type;
+
+            if (this.is_static) {
+                this.inverse_mass = 0.0f;
+            } else {
+                this.inverse_mass = 1f / this.mass;
+            }
+
 
             if (shape_type == ShapeType.BOX) {
                 float left = -width / 2.0f;

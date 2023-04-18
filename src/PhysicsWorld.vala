@@ -49,9 +49,17 @@ namespace Physv {
                 for (int j = i + 1; j < body_list.length (); j++) {
                     PhysicsBody body2 = body_list.nth_data (j);
 
+                    if (body1.is_static && body2.is_static) continue;
+
                     if (collide (body1, body2, out normal, out depth)) {
-                        body1.move (Vector2.multiply_value ({ -normal.x, -normal.y }, depth / 2));
-                        body2.move (Vector2.multiply_value ({ normal.x, normal.y }, depth / 2));
+                        if (body1.is_static) {
+                            body2.move (Vector2.multiply_value (normal, depth));
+                        } else if (body2.is_static) {
+                            body1.move (Vector2.multiply_value ({ -normal.x, -normal.y }, depth / 2));
+                        } else {
+                            body1.move (Vector2.multiply_value ({ -normal.x, -normal.y }, depth / 2));
+                            body2.move (Vector2.multiply_value (normal, depth / 2));
+                        }
 
                         resolve_collision (body1, body2, normal);
                     }
@@ -62,12 +70,16 @@ namespace Physv {
         public void resolve_collision (PhysicsBody body1, PhysicsBody body2, Vector2 normal) {
             Vector2 relative_velocity = Vector2.subtract (body2.linear_velocity, body1.linear_velocity);
 
+            if (Vector2.dot (relative_velocity, normal) > 0) return;
+
             float restitution = Math.fminf (body1.restitution, body2.restitution);
             float j = -(1f + restitution) * Vector2.dot (relative_velocity, normal); // vala-lint=space-before-paren
-            j /= (1f / body1.mass) + (1f / body2.mass);
+            j /= body1.inverse_mass + body2.inverse_mass;
 
-            body1.linear_velocity = Vector2.subtract (body1.linear_velocity, Vector2.multiply_value (normal, j / body1.mass));
-            body2.linear_velocity = Vector2.add (body2.linear_velocity, Vector2.multiply_value (normal, j / body2.mass));
+            Vector2 impulse = Vector2.multiply_value (normal, j);
+
+            body1.linear_velocity = Vector2.subtract (body1.linear_velocity, Vector2.multiply_value (impulse, body1.inverse_mass));
+            body2.linear_velocity = Vector2.add (body2.linear_velocity, Vector2.multiply_value (impulse, body2.inverse_mass));
         }
 
         public bool collide (PhysicsBody body1, PhysicsBody body2, out Vector2 normal, out float depth) {

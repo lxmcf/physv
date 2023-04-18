@@ -37,24 +37,31 @@ namespace Physv {
             float x = Raylib.get_random_value (64, Raylib.get_render_width () - 64);
             float y = Raylib.get_random_value (64, Raylib.get_render_height () - 64);
 
+            bool is_static = Random.boolean ();
+
             if (type == ShapeType.CIRCLE) {
                 world.add_body (
-                    PhysicsBody.create_circle_body (32.0f, { x, y }, 1.0f, false, 0.5f)
+                    PhysicsBody.create_circle_body (32.0f, { x, y }, 1.0f, is_static, 0.5f)
                 );
             } else if (type == ShapeType.BOX) {
                 world.add_body (
-                    PhysicsBody.create_box_body (64.0f, 64.0f, { x, y }, 1.0f, false, 0.5f)
+                    PhysicsBody.create_box_body (56.72f, 56.72f, { x, y }, 1.0f, is_static, 0.5f)
                 );
             }
 
-            colours[i] = {
-                (uchar)Raylib.get_random_value (0, 255),
-                (uchar)Raylib.get_random_value (0, 255),
-                (uchar)Raylib.get_random_value (0, 255),
-                255
-            };
+            if (!is_static) {
+                colours[i] = {
+                    (uchar)Raylib.get_random_value (0, 255),
+                    (uchar)Raylib.get_random_value (0, 255),
+                    (uchar)Raylib.get_random_value (0, 255),
+                    255
+                };
 
-            outlines[i] = Raylib.WHITE;
+                outlines[i] = Raylib.WHITE;
+            } else {
+                colours[i] = { 40, 40, 40, 255 };
+                outlines[i] = Raylib.RED;
+            }
         }
     }
 
@@ -62,7 +69,7 @@ namespace Physv {
         float direction_x = 0.0f;
         float direction_y = 0.0f;
 
-        float force_magnitude = 200.0f;
+        float force_magnitude = 150.0f;
 
         if (Raylib.is_key_down (Raylib.KeyboardKey.LEFT)) direction_x--;
         if (Raylib.is_key_down (Raylib.KeyboardKey.RIGHT)) direction_x++;
