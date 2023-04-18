@@ -1,9 +1,10 @@
 private const int BODY_COUNT = 10;
 
 namespace Physv {
-    private List<PhysicsBody> body_list;
     private Raylib.Color[] colours;
     private Raylib.Color[] outlines;
+
+    private PhysicsWorld world;
 
     public static int main (string[] args) {
         Raylib.init_window (1280, 768, "Physv test");
@@ -26,9 +27,10 @@ namespace Physv {
     }
 
     public void init_game () {
-        body_list = new List<PhysicsBody> ();
         colours = new Raylib.Color[BODY_COUNT];
         outlines = new Raylib.Color[BODY_COUNT];
+
+        world = new PhysicsWorld ();
 
         for (int i = 0; i < BODY_COUNT; i++) {
             int type = Raylib.get_random_value (0, 1);
@@ -36,15 +38,13 @@ namespace Physv {
             float y = Raylib.get_random_value (64, Raylib.get_render_height () - 64);
 
             if (type == ShapeType.CIRCLE) {
-                body_list.append (
+                world.add_body (
                     PhysicsBody.create_circle_body (32.0f, { x, y }, 2.0f, false, 0.5f)
                 );
             } else if (type == ShapeType.BOX) {
-                body_list.append (
+                world.add_body (
                     PhysicsBody.create_box_body (64.0f, 64.0f, { x, y }, 2.0f, false, 0.5f)
                 );
-            } else {
-                warning ("WRONG NUMBER");
             }
 
             colours[i] = {
@@ -62,7 +62,7 @@ namespace Physv {
         float direction_x = 0.0f;
         float direction_y = 0.0f;
 
-        float speed = 120.0f;
+        float speed = 200.0f;
 
         if (Raylib.is_key_down (Raylib.KeyboardKey.LEFT)) direction_x--;
         if (Raylib.is_key_down (Raylib.KeyboardKey.RIGHT)) direction_x++;
@@ -70,75 +70,30 @@ namespace Physv {
         if (Raylib.is_key_down (Raylib.KeyboardKey.DOWN)) direction_y++;
 
         if (direction_x != 0 || direction_y != 0) {
-            Vector2 direction = Vector2.normalise ({ direction_x, direction_y });
-            Vector2 velocity = Vector2.multiply_value (direction, speed * Raylib.get_frame_time ());
+            PhysicsBody body;
+            if (world.get_body (0, out body)) {
+                Vector2 direction = Vector2.normalise ({ direction_x, direction_y });
+                Vector2 velocity = Vector2.multiply_value (direction, speed * Raylib.get_frame_time ());
 
-            PhysicsBody body = body_list.nth_data (0);
-
-            body.move (velocity);
-        }
-
-        Vector2 normal;
-        float depth;
-
-        for (int i = 0; i < body_list.length (); i++) {
-            PhysicsBody body = body_list.nth_data (i);
-            //  body.rotate (((float)Math.PI / 2.0f) * Raylib.get_frame_time ());
-
-            outlines[i] = Raylib.WHITE;
-        }
-
-        for (int i = 0; i < body_list.length () - 1; i++) {
-            PhysicsBody body1 = body_list.nth_data (i);
-
-            for (int j = i + 1; j < body_list.length (); j++) {
-                PhysicsBody body2 = body_list.nth_data (j);
-
-                if (body1.shape_type == ShapeType.BOX && body2.shape_type == ShapeType.CIRCLE) {
-                    if (intersect_circle_polygon (body2.position, body2.radius, body1.get_transformed_vertices (), out normal, out depth)) {
-                        body1.move (Vector2.multiply_value ({ normal.x, normal.y }, depth / 2));
-                        body2.move (Vector2.multiply_value ({ -normal.x, -normal.y }, depth / 2));
-
-                        outlines[i] = Raylib.RED;
-                        outlines[j] = Raylib.RED;
-                    }
-                } else if (body2.shape_type == ShapeType.BOX && body1.shape_type == ShapeType.CIRCLE) {
-                    if (intersect_circle_polygon (body1.position, body1.radius, body2.get_transformed_vertices (), out normal, out depth)) {
-                        body1.move (Vector2.multiply_value ({ -normal.x, -normal.y }, depth / 2));
-                        body2.move (Vector2.multiply_value ({ normal.x, normal.y }, depth / 2));
-
-                        outlines[i] = Raylib.RED;
-                        outlines[j] = Raylib.RED;
-                    }
-                }
-
-
-                //  if (intersect_circles (body1.position, body1.radius, body2.position, body2.radius, out normal, out depth)) {
-                //      body1.move (Vector2.multiply_value ({ -normal.x, -normal.y }, depth / 2));
-                //      body2.move (Vector2.multiply_value ({ normal.x, normal.y }, depth / 2));
-                //  }
-
-                //  if (intersect_polygons (body1.get_transformed_vertices (), body2.get_transformed_vertices (), out normal, out depth)) {
-                //      outlines[i] = Raylib.RED;
-                //      outlines[j] = Raylib.RED;
-
-                //      body1.move (Vector2.multiply_value ({ -normal.x, -normal.y }, depth / 2));
-                //      body2.move (Vector2.multiply_value ({ normal.x, normal.y }, depth / 2));
-                //  }
+                body.move (velocity);
             }
         }
+
+        world.step (Raylib.get_frame_time ());
     }
 
     public static void draw_game () {
-        for (int i = 0; i < body_list.length (); i++) {
-            PhysicsBody body = body_list.nth_data (i);
+        for (int i = 0; i < world.body_count; i++) {
+            PhysicsBody body;
 
-            if (body.shape_type == ShapeType.CIRCLE) {
-                Raylib.draw_circle_vector ({ body.position.x, body.position.y }, body.radius, colours[i]);
-                Raylib.draw_circle_sector_lines ({ body.position.x, body.position.y }, body.radius, 0.0f, 360.0f, 26, outlines[i]);
-            } else if (body.shape_type == ShapeType.BOX) {
-                draw_polygon_filled (body.get_transformed_vertices (), colours[i]);
-                draw_polygon_outline (body.get_transformed_vertices (), outlines[i]);
+            if (world.get_body (i, out body)) {
+                if (body.shape_type == ShapeType.CIRCLE) {
+                    Raylib.draw_circle_vector ({ body.position.x, body.position.y }, body.radius, colours[i]);
+                    Raylib.draw_circle_sector_lines ({ body.position.x, body.position.y }, body.radius, 0.0f, 360.0f, 26, outlines[i]);
+                } else if (body.shape_type == ShapeType.BOX) {
+                    draw_polygon_filled (body.get_transformed_vertices (), colours[i]);
+                    draw_polygon_outline (body.get_transformed_vertices (), outlines[i]);
+                }
             }
         }
     }

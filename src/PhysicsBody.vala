@@ -93,6 +93,11 @@ namespace Physv {
             return transformed_vertices;
         }
 
+        public void step (float time) {
+            position = Vector2.add (position, Vector2.multiply_value (linear_velocity, time));
+            rotation += rotational_velocity * time;
+        }
+
         public void move (Vector2 amount) {
             position = Vector2.add (position, amount);
             transform_update_required = true;
