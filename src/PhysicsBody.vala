@@ -1,4 +1,7 @@
 namespace Physv {
+    //  TODO: Remove automass
+    private const float MASS_SCALE = 3200.0f;
+
     public enum ShapeType {
         CIRCLE = 0,
         BOX,
@@ -7,10 +10,12 @@ namespace Physv {
 
     public class PhysicsBody {
         public Vector2 position { public get; private set; }
-        private Vector2 linear_velocity;
+        public Vector2 linear_velocity { public get; internal set; }
 
         private float rotation;
         private float rotational_velocity;
+
+        private Vector2 force;
 
         public float density { public get; private set; }
         public float mass { public get; private set; }
@@ -37,6 +42,8 @@ namespace Physv {
             this.linear_velocity = Vector2.ZERO;
             this.rotation = 0.0f;
             this.rotational_velocity = 0.0f;
+
+            this.force = Vector2.ZERO;
 
             this.density = density;
             this.mass = mass;
@@ -94,8 +101,15 @@ namespace Physv {
         }
 
         public void step (float time) {
+            Vector2 acceleration = Vector2.divide_value (force, mass);
+            linear_velocity = Vector2.add (linear_velocity, Vector2.multiply_value (acceleration, time));
+
             position = Vector2.add (position, Vector2.multiply_value (linear_velocity, time));
+
             rotation += rotational_velocity * time;
+
+            force = Vector2.ZERO;
+            transform_update_required = true;
         }
 
         public void move (Vector2 amount) {
@@ -113,18 +127,22 @@ namespace Physv {
             transform_update_required = true;
         }
 
+        public void add_force (Vector2 force) {
+            this.force = force;
+        }
+
         public static PhysicsBody create_box_body (float width, float height, Vector2 position, float density, bool is_static, float restitution) {
             float area = width * height;
             float mass = area * density;
 
-            return new PhysicsBody (position, density, mass, restitution, area, is_static, 0.0f, width, height, ShapeType.BOX);
+            return new PhysicsBody (position, density, mass / MASS_SCALE, restitution, area, is_static, 0.0f, width, height, ShapeType.BOX);
         }
 
         public static PhysicsBody create_circle_body (float radius, Vector2 position, float density, bool is_static, float restitution) {
             float area = radius * radius * (float)Math.PI;
             float mass = area * density;
 
-            return new PhysicsBody (position, density, mass, restitution, area, is_static, radius, 0.0f, 0.0f, ShapeType.CIRCLE);
+            return new PhysicsBody (position, density, mass / MASS_SCALE, restitution, area, is_static, radius, 0.0f, 0.0f, ShapeType.CIRCLE);
         }
     }
 }

@@ -1,4 +1,4 @@
-private const int BODY_COUNT = 10;
+private const int BODY_COUNT = 20;
 
 namespace Physv {
     private Raylib.Color[] colours;
@@ -39,11 +39,11 @@ namespace Physv {
 
             if (type == ShapeType.CIRCLE) {
                 world.add_body (
-                    PhysicsBody.create_circle_body (32.0f, { x, y }, 2.0f, false, 0.5f)
+                    PhysicsBody.create_circle_body (32.0f, { x, y }, 1.0f, false, 0.5f)
                 );
             } else if (type == ShapeType.BOX) {
                 world.add_body (
-                    PhysicsBody.create_box_body (64.0f, 64.0f, { x, y }, 2.0f, false, 0.5f)
+                    PhysicsBody.create_box_body (64.0f, 64.0f, { x, y }, 1.0f, false, 0.5f)
                 );
             }
 
@@ -62,7 +62,7 @@ namespace Physv {
         float direction_x = 0.0f;
         float direction_y = 0.0f;
 
-        float speed = 200.0f;
+        float force_magnitude = 200.0f;
 
         if (Raylib.is_key_down (Raylib.KeyboardKey.LEFT)) direction_x--;
         if (Raylib.is_key_down (Raylib.KeyboardKey.RIGHT)) direction_x++;
@@ -72,14 +72,15 @@ namespace Physv {
         if (direction_x != 0 || direction_y != 0) {
             PhysicsBody body;
             if (world.get_body (0, out body)) {
-                Vector2 direction = Vector2.normalise ({ direction_x, direction_y });
-                Vector2 velocity = Vector2.multiply_value (direction, speed * Raylib.get_frame_time ());
+                Vector2 force_direction = Vector2.normalise ({ direction_x, direction_y });
+                Vector2 force = Vector2.multiply_value (force_direction, force_magnitude);
 
-                body.move (velocity);
+                body.add_force (force);
             }
         }
 
         world.step (Raylib.get_frame_time ());
+        wrap_bodies ();
     }
 
     public static void draw_game () {
@@ -93,6 +94,10 @@ namespace Physv {
                 } else if (body.shape_type == ShapeType.BOX) {
                     draw_polygon_filled (body.get_transformed_vertices (), colours[i]);
                     draw_polygon_outline (body.get_transformed_vertices (), outlines[i]);
+                }
+
+                if (i == 0) {
+                    Raylib.draw_circle_vector ({ body.position.x, body.position.y }, 8, Raylib.RED);
                 }
             }
         }
@@ -118,6 +123,23 @@ namespace Physv {
                 { vertices[i - 1].x, vertices[i - 1].y },
                 color
             );
+        }
+    }
+
+    public void wrap_bodies () {
+        float view_width = Raylib.get_render_width ();
+        float view_height = Raylib.get_render_height ();
+
+        for (int i = 0; i < world.body_count; i ++) {
+            PhysicsBody body;
+
+            if (world.get_body (i, out body)) {
+                if (body.position.x < 0) { body.move_to (Vector2.add (body.position, { view_width, 0.0f })); }
+                if (body.position.x > view_width) { body.move_to (Vector2.subtract (body.position, { view_width, 0.0f })); }
+
+                if (body.position.y < 0) { body.move_to (Vector2.add (body.position, { 0.0f, view_height })); }
+                if (body.position.y > view_height) { body.move_to (Vector2.subtract (body.position, { 0.0f, view_height })); }
+            }
         }
     }
 }

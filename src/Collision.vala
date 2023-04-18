@@ -16,6 +16,10 @@ namespace Physv {
             Vector2 edge = Vector2.subtract (vertex2, vertex1);
             axis = { -edge.y, edge.x };
 
+            //  May not be needed
+            axis = Vector2.normalise (axis);
+            //  May not be needed
+
             project_vertices (vertices, axis, out minimum1, out maximum1);
             project_circle (circle_position, circle_radius, axis, out minimum2, out maximum2);
 
@@ -33,6 +37,10 @@ namespace Physv {
 
         axis = Vector2.subtract (vertices[closest_point], circle_position);
 
+        //  May not be needed
+        axis = Vector2.normalise (axis);
+        //  May not be needed
+
         project_vertices (vertices, axis, out minimum1, out maximum1);
         project_circle (circle_position, circle_radius, axis, out minimum2, out maximum2);
 
@@ -46,8 +54,9 @@ namespace Physv {
         }
 
         //  Need to test perf
-        depth /= Vector2.length (normal);
-        normal = Vector2.normalise (normal);
+        //  depth /= Vector2.length (normal);
+        //  normal = Vector2.normalise (normal);
+        //  Need to test perf
 
         Vector2 polygon_position = find_arithmatic_mean (vertices);
 
@@ -74,6 +83,10 @@ namespace Physv {
             Vector2 edge = Vector2.subtract (vertex2, vertex1);
             Vector2 axis = { -edge.y, edge.x };
 
+            //  May not be needed
+            axis = Vector2.normalise (axis);
+            //  May not be needed
+
             project_vertices (vertices1, axis, out minimum1, out maximum1);
             project_vertices (vertices2, axis, out minimum2, out maximum2);
 
@@ -94,6 +107,10 @@ namespace Physv {
             Vector2 edge = Vector2.subtract (vertex2, vertex1);
             Vector2 axis = { -edge.y, edge.x };
 
+            //  May not be needed
+            axis = Vector2.normalise (axis);
+            //  May not be needed
+
             project_vertices (vertices1, axis, out minimum1, out maximum1);
             project_vertices (vertices2, axis, out minimum2, out maximum2);
 
@@ -108,8 +125,9 @@ namespace Physv {
         }
 
         //  Need to test perf
-        depth /= Vector2.length (normal);
-        normal = Vector2.normalise (normal);
+        //  depth /= Vector2.length (normal);
+        //  normal = Vector2.normalise (normal);
+        //  Need to test perf
 
         Vector2 center1 = find_arithmatic_mean (vertices1);
         Vector2 center2 = find_arithmatic_mean (vertices2);

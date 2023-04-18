@@ -52,9 +52,22 @@ namespace Physv {
                     if (collide (body1, body2, out normal, out depth)) {
                         body1.move (Vector2.multiply_value ({ -normal.x, -normal.y }, depth / 2));
                         body2.move (Vector2.multiply_value ({ normal.x, normal.y }, depth / 2));
+
+                        resolve_collision (body1, body2, normal);
                     }
                 }
             }
+        }
+
+        public void resolve_collision (PhysicsBody body1, PhysicsBody body2, Vector2 normal) {
+            Vector2 relative_velocity = Vector2.subtract (body2.linear_velocity, body1.linear_velocity);
+
+            float restitution = Math.fminf (body1.restitution, body2.restitution);
+            float j = -(1f + restitution) * Vector2.dot (relative_velocity, normal); // vala-lint=space-before-paren
+            j /= (1f / body1.mass) + (1f / body2.mass);
+
+            body1.linear_velocity = Vector2.subtract (body1.linear_velocity, Vector2.multiply_value (normal, j / body1.mass));
+            body2.linear_velocity = Vector2.add (body2.linear_velocity, Vector2.multiply_value (normal, j / body2.mass));
         }
 
         public bool collide (PhysicsBody body1, PhysicsBody body2, out Vector2 normal, out float depth) {
