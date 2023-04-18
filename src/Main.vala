@@ -3,6 +3,7 @@ private const int BODY_COUNT = 10;
 namespace Physv {
     private List<PhysicsBody> body_list;
     private Raylib.Color[] colours;
+    private Raylib.Color[] outlines;
 
     public static int main (string[] args) {
         Raylib.init_window (1280, 768, "Physv test");
@@ -27,11 +28,10 @@ namespace Physv {
     public void init_game () {
         body_list = new List<PhysicsBody> ();
         colours = new Raylib.Color[BODY_COUNT];
+        outlines = new Raylib.Color[BODY_COUNT];
 
         for (int i = 0; i < BODY_COUNT; i++) {
-            //  int type = Raylib.get_random_value (0, 1);
-            int type = ShapeType.BOX;
-
+            int type = Raylib.get_random_value (0, 1);
             float x = Raylib.get_random_value (64, Raylib.get_render_width () - 64);
             float y = Raylib.get_random_value (64, Raylib.get_render_height () - 64);
 
@@ -53,6 +53,8 @@ namespace Physv {
                 (uchar)Raylib.get_random_value (0, 255),
                 255
             };
+
+            outlines[i] = Raylib.WHITE;
         }
     }
 
@@ -81,23 +83,50 @@ namespace Physv {
 
         for (int i = 0; i < body_list.length (); i++) {
             PhysicsBody body = body_list.nth_data (i);
-            body.rotate (((float)Math.PI / 2.0f) * Raylib.get_frame_time ());
+            //  body.rotate (((float)Math.PI / 2.0f) * Raylib.get_frame_time ());
+
+            outlines[i] = Raylib.WHITE;
         }
 
-        #if false
         for (int i = 0; i < body_list.length () - 1; i++) {
             PhysicsBody body1 = body_list.nth_data (i);
 
             for (int j = i + 1; j < body_list.length (); j++) {
                 PhysicsBody body2 = body_list.nth_data (j);
 
-                if (intersec_circles (body1.position, body1.radius, body2.position, body2.radius, out normal, out depth)) {
-                    body1.move (Vector2.multiply_value ({ -normal.x, -normal.y }, depth / 2));
-                    body2.move (Vector2.multiply_value ({ normal.x, normal.y }, depth / 2));
+                if (body1.shape_type == ShapeType.BOX && body2.shape_type == ShapeType.CIRCLE) {
+                    if (intersect_circle_polygon (body2.position, body2.radius, body1.get_transformed_vertices (), out normal, out depth)) {
+                        body1.move (Vector2.multiply_value ({ normal.x, normal.y }, depth / 2));
+                        body2.move (Vector2.multiply_value ({ -normal.x, -normal.y }, depth / 2));
+
+                        outlines[i] = Raylib.RED;
+                        outlines[j] = Raylib.RED;
+                    }
+                } else if (body2.shape_type == ShapeType.BOX && body1.shape_type == ShapeType.CIRCLE) {
+                    if (intersect_circle_polygon (body1.position, body1.radius, body2.get_transformed_vertices (), out normal, out depth)) {
+                        body1.move (Vector2.multiply_value ({ -normal.x, -normal.y }, depth / 2));
+                        body2.move (Vector2.multiply_value ({ normal.x, normal.y }, depth / 2));
+
+                        outlines[i] = Raylib.RED;
+                        outlines[j] = Raylib.RED;
+                    }
                 }
+
+
+                //  if (intersect_circles (body1.position, body1.radius, body2.position, body2.radius, out normal, out depth)) {
+                //      body1.move (Vector2.multiply_value ({ -normal.x, -normal.y }, depth / 2));
+                //      body2.move (Vector2.multiply_value ({ normal.x, normal.y }, depth / 2));
+                //  }
+
+                //  if (intersect_polygons (body1.get_transformed_vertices (), body2.get_transformed_vertices (), out normal, out depth)) {
+                //      outlines[i] = Raylib.RED;
+                //      outlines[j] = Raylib.RED;
+
+                //      body1.move (Vector2.multiply_value ({ -normal.x, -normal.y }, depth / 2));
+                //      body2.move (Vector2.multiply_value ({ normal.x, normal.y }, depth / 2));
+                //  }
             }
         }
-        #endif
     }
 
     public static void draw_game () {
@@ -106,9 +135,10 @@ namespace Physv {
 
             if (body.shape_type == ShapeType.CIRCLE) {
                 Raylib.draw_circle_vector ({ body.position.x, body.position.y }, body.radius, colours[i]);
-                Raylib.draw_circle_sector_lines ({ body.position.x, body.position.y }, body.radius, 0.0f, 360.0f, 26, Raylib.WHITE);
+                Raylib.draw_circle_sector_lines ({ body.position.x, body.position.y }, body.radius, 0.0f, 360.0f, 26, outlines[i]);
             } else if (body.shape_type == ShapeType.BOX) {
-                draw_polygon_outline (body.get_transformed_vertices (), Raylib.WHITE);
+                draw_polygon_filled (body.get_transformed_vertices (), colours[i]);
+                draw_polygon_outline (body.get_transformed_vertices (), outlines[i]);
             }
         }
     }
@@ -119,6 +149,20 @@ namespace Physv {
             Vector2 end = vertices[(i + 1) % vertices.length];
 
             Raylib.draw_line_vector ({ start.x, start.y }, { end.x, end.y }, color);
+        }
+    }
+
+    //  NOTE: This is from ChatGPT and very scuffed
+    public static void draw_polygon_filled (Vector2[] vertices, Raylib.Color color) {
+        Vector2 pivot = vertices[0];
+
+        for (int i = vertices.length - 1; i > 1 ; i--) {
+            Raylib.draw_triangle (
+                { pivot.x, pivot.y },
+                { vertices[i].x, vertices[i].y },
+                { vertices[i - 1].x, vertices[i - 1].y },
+                color
+            );
         }
     }
 }
