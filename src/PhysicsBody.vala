@@ -4,8 +4,7 @@ namespace Physv {
 
     public enum ShapeType {
         CIRCLE = 0,
-        BOX,
-        POLYGON
+        BOX
     }
 
     public class PhysicsBody {
@@ -32,9 +31,11 @@ namespace Physv {
         private Vector2[] vertices;
         private Vector2[] transformed_vertices;
 
-        public int[] indices;
+        private AABB aabb;
+        //  public int[] indices;
 
         private bool transform_update_required;
+        private bool aabb_update_required;
 
         public ShapeType shape_type { public get; private set; }
 
@@ -80,20 +81,21 @@ namespace Physv {
 
                 transformed_vertices = new Vector2[4];
 
-                indices = new int[6];
-                indices[0] = 0;
-                indices[1] = 1;
-                indices[2] = 2;
-                indices[3] = 0;
-                indices[4] = 2;
-                indices[5] = 3;
+                //  indices = new int[6];
+                //  indices[0] = 0;
+                //  indices[1] = 1;
+                //  indices[2] = 2;
+                //  indices[3] = 0;
+                //  indices[4] = 2;
+                //  indices[5] = 3;
             } else {
                 vertices = null;
                 transformed_vertices = null;
-                indices = null;
+                //  indices = null;
             }
 
             transform_update_required = true;
+            aabb_update_required = true;
         }
 
         public Vector2[] get_transformed_vertices () {
@@ -103,14 +105,55 @@ namespace Physv {
                 for (int i = 0; i < vertices.length; i++) {
                     transformed_vertices[i] = Vector2.transform (vertices[i], transform);
                 }
+
+                transform_update_required = false;
             }
 
             return transformed_vertices;
         }
 
-        public void step (float time) {
-            Vector2 acceleration = Vector2.divide_value (force, mass);
-            linear_velocity = Vector2.add (linear_velocity, Vector2.multiply_value (acceleration, time));
+        public AABB get_AABB () {
+            if (aabb_update_required) {
+                Vector2 minimum = Vector2.MAX;
+                Vector2 maximum = Vector2.MIN;
+
+                if (shape_type == ShapeType.BOX) {
+                    Vector2[] local_vertices = get_transformed_vertices ();
+
+                    for (int i = 0; i < local_vertices.length; i++) {
+                        Vector2 vertex = local_vertices[i];
+
+                        if (vertex.x < minimum.x) minimum.x = vertex.x;
+                        if (vertex.x > maximum.x) maximum.x = vertex.x;
+
+                        if (vertex.y < minimum.y) minimum.y = vertex.y;
+                        if (vertex.y > maximum.y) maximum.y = vertex.y;
+                    }
+                } else {
+                    minimum.x = position.x - radius;
+                    minimum.y = position.y - radius;
+
+                    maximum.x = position.x + radius;
+                    maximum.y = position.y + radius;
+                }
+
+                aabb = { minimum, maximum };
+
+                aabb_update_required = false;
+            }
+
+            return aabb;
+        }
+
+        internal void step (float time, Vector2 gravity, int iterations) {
+            //  Vector2 acceleration = Vector2.divide_value (force, mass);
+            //  linear_velocity = Vector2.add (linear_velocity, Vector2.multiply_value (acceleration, time));
+
+            if (is_static) return;
+
+            time /= (float)iterations;
+
+            linear_velocity = Vector2.add (linear_velocity, Vector2.multiply_value (gravity, time));
 
             position = Vector2.add (position, Vector2.multiply_value (linear_velocity, time));
 
@@ -118,21 +161,25 @@ namespace Physv {
 
             force = Vector2.ZERO;
             transform_update_required = true;
+            aabb_update_required = true;
         }
 
         public void move (Vector2 amount) {
             position = Vector2.add (position, amount);
             transform_update_required = true;
+            aabb_update_required = true;
         }
 
         public void move_to (Vector2 position) {
             this.position = position;
             transform_update_required = true;
+            aabb_update_required = true;
         }
 
         public void rotate (float amount) {
             rotation += amount;
             transform_update_required = true;
+            aabb_update_required = true;
         }
 
         public void add_force (Vector2 force) {

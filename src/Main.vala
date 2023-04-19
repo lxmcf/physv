@@ -1,8 +1,8 @@
-private const int BODY_COUNT = 20;
+using Physv.Debug;
 
 namespace Physv {
-    private Raylib.Color[] colours;
-    private Raylib.Color[] outlines;
+    private List<Raylib.Color?> colours;
+    private List<Raylib.Color?> outlines;
 
     private PhysicsWorld world;
 
@@ -27,67 +27,96 @@ namespace Physv {
     }
 
     public void init_game () {
-        colours = new Raylib.Color[BODY_COUNT];
-        outlines = new Raylib.Color[BODY_COUNT];
+        colours = new List<Raylib.Color?> ();
+        outlines = new List<Raylib.Color?> ();
+
+        colours.append (Raylib.DARKGRAY);
+        outlines.append (Raylib.WHITE);
 
         world = new PhysicsWorld ();
 
-        for (int i = 0; i < BODY_COUNT; i++) {
-            int type = Raylib.get_random_value (0, 1);
-            float x = Raylib.get_random_value (64, Raylib.get_render_width () - 64);
-            float y = Raylib.get_random_value (64, Raylib.get_render_height () - 64);
-
-            bool is_static = Random.boolean ();
-
-            if (type == ShapeType.CIRCLE) {
-                world.add_body (
-                    PhysicsBody.create_circle_body (32.0f, { x, y }, 1.0f, is_static, 0.5f)
-                );
-            } else if (type == ShapeType.BOX) {
-                world.add_body (
-                    PhysicsBody.create_box_body (56.72f, 56.72f, { x, y }, 1.0f, is_static, 0.5f)
-                );
-            }
-
-            if (!is_static) {
-                colours[i] = {
-                    (uchar)Raylib.get_random_value (0, 255),
-                    (uchar)Raylib.get_random_value (0, 255),
-                    (uchar)Raylib.get_random_value (0, 255),
-                    255
-                };
-
-                outlines[i] = Raylib.WHITE;
-            } else {
-                colours[i] = { 40, 40, 40, 255 };
-                outlines[i] = Raylib.RED;
-            }
-        }
+        world.add_body (
+            PhysicsBody.create_box_body (1024.0f, 96.0f, { 640.0f, 640.0f }, 1.0f, true, 0.5f)
+        );
     }
 
     public static void update_game () {
-        float direction_x = 0.0f;
-        float direction_y = 0.0f;
+        //  float direction_x = 0.0f;
+        //  float direction_y = 0.0f;
 
-        float force_magnitude = 150.0f;
+        //  float force_magnitude = 150.0f;
 
-        if (Raylib.is_key_down (Raylib.KeyboardKey.LEFT)) direction_x--;
-        if (Raylib.is_key_down (Raylib.KeyboardKey.RIGHT)) direction_x++;
-        if (Raylib.is_key_down (Raylib.KeyboardKey.UP)) direction_y--;
-        if (Raylib.is_key_down (Raylib.KeyboardKey.DOWN)) direction_y++;
+        //  if (Raylib.is_key_down (Raylib.KeyboardKey.LEFT)) direction_x--;
+        //  if (Raylib.is_key_down (Raylib.KeyboardKey.RIGHT)) direction_x++;
+        //  if (Raylib.is_key_down (Raylib.KeyboardKey.UP)) direction_y--;
+        //  if (Raylib.is_key_down (Raylib.KeyboardKey.DOWN)) direction_y++;
 
-        if (direction_x != 0 || direction_y != 0) {
-            PhysicsBody body;
-            if (world.get_body (0, out body)) {
-                Vector2 force_direction = Vector2.normalise ({ direction_x, direction_y });
-                Vector2 force = Vector2.multiply_value (force_direction, force_magnitude);
+        //  if (direction_x != 0 || direction_y != 0) {
+        //      PhysicsBody body;
+        //      if (world.get_body (0, out body)) {
+        //          Vector2 force_direction = Vector2.normalise ({ direction_x, direction_y });
+        //          Vector2 force = Vector2.multiply_value (force_direction, force_magnitude);
 
-                body.add_force (force);
-            }
+        //          body.add_force (force);
+        //      }
+        //  }
+
+        if (Raylib.is_mouse_button_pressed (Raylib.MouseButton.LEFT)) {
+            float width = Raylib.get_random_value (24, 64);
+            float height = Raylib.get_random_value (24, 64);
+
+            Raylib.Vector2 mouse = Raylib.get_mouse_position ();
+
+            world.add_body (
+                PhysicsBody.create_box_body (width, height, { mouse.x, mouse.y } , 1.0f, false, 0.5f)
+            );
+
+            colours.append ({
+                (uchar)Raylib.get_random_value (0, 255),
+                (uchar)Raylib.get_random_value (0, 255),
+                (uchar)Raylib.get_random_value (0, 255),
+                255
+            });
+
+            outlines.append (Raylib.WHITE);
         }
 
-        world.step (Raylib.get_frame_time ());
-        wrap_bodies ();
+        if (Raylib.is_mouse_button_pressed (Raylib.MouseButton.RIGHT)) {
+            float radius = Raylib.get_random_value (16, 32);
+
+            Raylib.Vector2 mouse = Raylib.get_mouse_position ();
+
+            world.add_body (
+                PhysicsBody.create_circle_body (radius, { mouse.x, mouse.y }, 1.0f, false, 0.5f)
+            );
+
+            colours.append ({
+                (uchar)Raylib.get_random_value (0, 255),
+                (uchar)Raylib.get_random_value (0, 255),
+                (uchar)Raylib.get_random_value (0, 255),
+                255
+            });
+
+            outlines.append (Raylib.WHITE);
+        }
+
+        BLOCK_TIMER ("physics step", TimeMeasure.MILLISECONDS, () => {
+            world.step (Raylib.get_frame_time (), 1);
+        });
+
+        for (int i = 0; i < world.body_count; i ++) {
+            PhysicsBody body;
+
+            if (world.get_body (i, out body)) {
+                AABB box = body.get_AABB ();
+
+                if (box.minimum.y >= 768) {
+                    world.remove_body (body);
+                    colours.remove (colours.nth_data (i));
+                    outlines.remove (outlines.nth_data (i));
+                }
+            }
+        }
     }
 
     public static void draw_game () {
@@ -96,18 +125,23 @@ namespace Physv {
 
             if (world.get_body (i, out body)) {
                 if (body.shape_type == ShapeType.CIRCLE) {
-                    Raylib.draw_circle_vector ({ body.position.x, body.position.y }, body.radius, colours[i]);
-                    Raylib.draw_circle_sector_lines ({ body.position.x, body.position.y }, body.radius, 0.0f, 360.0f, 26, outlines[i]);
+                    Raylib.draw_circle_vector ({ body.position.x, body.position.y }, body.radius, colours.nth_data (i));
+                    Raylib.draw_circle_sector_lines ({ body.position.x, body.position.y }, body.radius, 0.0f, 360.0f, 26, outlines.nth_data (i));
                 } else if (body.shape_type == ShapeType.BOX) {
-                    draw_polygon_filled (body.get_transformed_vertices (), colours[i]);
-                    draw_polygon_outline (body.get_transformed_vertices (), outlines[i]);
-                }
-
-                if (i == 0) {
-                    Raylib.draw_circle_vector ({ body.position.x, body.position.y }, 8, Raylib.RED);
+                    draw_polygon_filled (body.get_transformed_vertices (), colours.nth_data (i));
+                    draw_polygon_outline (body.get_transformed_vertices (), outlines.nth_data (i));
                 }
             }
         }
+
+        for (int i = 0; i < world.contact_list.length (); i++) {
+            Vector2 contact = world.contact_list.nth_data (i);
+
+            Raylib.draw_circle_vector ({ contact.x, contact.y }, 8, Raylib.YELLOW);
+            Raylib.draw_circle_sector_lines ({ contact.x, contact.y }, 8, 0.0f, 360.0f, 16, Raylib.BLACK);
+        }
+
+        Raylib.draw_text ("Body Count: %u".printf (world.body_count), 8, 8, 30, Raylib.WHITE);
     }
 
     public static void draw_polygon_outline (Vector2[] vertices, Raylib.Color color) {
@@ -130,23 +164,6 @@ namespace Physv {
                 { vertices[i - 1].x, vertices[i - 1].y },
                 color
             );
-        }
-    }
-
-    public void wrap_bodies () {
-        float view_width = Raylib.get_render_width ();
-        float view_height = Raylib.get_render_height ();
-
-        for (int i = 0; i < world.body_count; i ++) {
-            PhysicsBody body;
-
-            if (world.get_body (i, out body)) {
-                if (body.position.x < 0) { body.move_to (Vector2.add (body.position, { view_width, 0.0f })); }
-                if (body.position.x > view_width) { body.move_to (Vector2.subtract (body.position, { view_width, 0.0f })); }
-
-                if (body.position.y < 0) { body.move_to (Vector2.add (body.position, { 0.0f, view_height })); }
-                if (body.position.y > view_height) { body.move_to (Vector2.subtract (body.position, { 0.0f, view_height })); }
-            }
         }
     }
 }

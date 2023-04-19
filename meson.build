@@ -37,6 +37,8 @@ project_source = files (
     'src/Transform.vala',
     'src/Colour.vala',
     'src/Collision.vala',
+    'src/AABB.vala',
+    'src/Manifold.vala',
 
     'src/PhysicsBody.vala',
     'src/PhysicsWorld.vala',

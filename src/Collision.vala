@@ -1,5 +1,122 @@
 namespace Physv {
-    public static bool intersect_circle_polygon (Vector2 circle_position, float circle_radius, Vector2[] vertices, out Vector2 normal, out float depth) {
+    public static void point_segment_distance (Vector2 point, Vector2 start, Vector2 end, out float distance, out Vector2 contact_point) {
+        Vector2 ab = Vector2.subtract (end, start);
+        Vector2 ap = Vector2.subtract (point, start);
+
+        float projection = Vector2.dot (ap, ab);
+        float ab_length_squared = Vector2.length_squared (ab);
+        float d = projection / ab_length_squared;
+
+        if (d <= 0f) {
+            contact_point = start;
+        } else if (d >= 1f) {
+            contact_point = end;
+        } else {
+            contact_point = Vector2.add (start, Vector2.multiply_value (ab, d));
+        }
+
+        distance = Vector2.distance_squared (point, contact_point);
+    }
+
+    //  NOTE: I think my math may be off here
+    public static bool intersect_AABB (AABB box1, AABB box2) {
+        bool gap_x = (box1.maximum.x <= box2.minimum.x || box2.maximum.x <= box1.minimum.x);
+        bool gap_y = (box1.maximum.y <= box2.minimum.y || box2.maximum.y <= box1.minimum.y);
+
+        if (gap_x || gap_y) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static void find_contact_points (PhysicsBody body1, PhysicsBody body2, out Vector2 contact1, out Vector2 contact2, out int contact_count) {
+        contact1 = Vector2.ZERO;
+        contact2 = Vector2.ZERO;
+        contact_count = 0;
+
+        ShapeType shape1 = body1.shape_type;
+        ShapeType shape2 = body2.shape_type;
+
+        if (shape1 == ShapeType.BOX) {
+            if (shape2 == ShapeType.BOX) {
+
+            } else if (shape2 == ShapeType.CIRCLE) {
+                find_contact_point_polygon_circle (body2.position, body2.radius, body1.position, body1.get_transformed_vertices (), out contact1);
+
+                contact_count = 1;
+            }
+        } else if (shape1 == ShapeType.CIRCLE) {
+            if (shape2 == ShapeType.BOX) {
+                find_contact_point_polygon_circle (body1.position, body1.radius, body2.position, body2.get_transformed_vertices (), out contact1);
+
+                contact_count = 1;
+            } else if (shape2 == ShapeType.CIRCLE) {
+                find_contact_point_circles (body1.position, body1.radius, body2.position, out contact1);
+
+                contact_count = 1;
+            }
+        }
+    }
+
+    private static void find_contact_point_circles (Vector2 circle_position1, float circle_radius, Vector2 circle_position2, out Vector2 contact_point) {
+        Vector2 direction = Vector2.subtract (circle_position2, circle_position1);
+        direction = Vector2.normalise (direction);
+
+        contact_point = Vector2.add (circle_position1, Vector2.multiply_value (direction, circle_radius));
+    }
+
+    private static void find_contact_point_polygon_circle (Vector2 circle_position, float circle_radius, Vector2 polygon_position, Vector2[] vertices, out Vector2 contact_point) {
+        contact_point = Vector2.ZERO;
+
+        float minimum_distance = float.MAX;
+        Vector2 potential_contact;
+
+        for (int i = 0; i < vertices.length; i++) {
+            Vector2 start = vertices[i];
+            Vector2 end = vertices[(i + 1) % vertices.length];
+
+            float distance;
+
+            point_segment_distance (circle_position, start, end, out distance, out potential_contact);
+
+            if (distance < minimum_distance) {
+                minimum_distance = distance;
+
+                contact_point = potential_contact;
+            }
+        }
+    }
+
+
+    public bool collide (PhysicsBody body1, PhysicsBody body2, out Vector2 normal, out float depth) {
+        normal = Vector2.ZERO;
+        depth = 0.0f;
+
+        ShapeType shape1 = body1.shape_type;
+        ShapeType shape2 = body2.shape_type;
+
+        if (shape1 == ShapeType.BOX) {
+            if (shape2 == ShapeType.BOX) {
+                return intersect_polygons (body1.position, body1.get_transformed_vertices (), body2.position, body2.get_transformed_vertices (), out normal, out depth);
+            } else if (shape2 == ShapeType.CIRCLE) {
+                bool result = intersect_circle_polygon (body2.position, body2.radius, body1.position, body1.get_transformed_vertices (), out normal, out depth);
+                normal = { -normal.x, -normal.y };
+
+                return result;
+            }
+        } else if (shape1 == ShapeType.CIRCLE) {
+            if (shape2 == ShapeType.BOX) {
+                return intersect_circle_polygon (body1.position, body1.radius, body2.position, body2.get_transformed_vertices (), out normal, out depth);
+            } else if (shape2 == ShapeType.CIRCLE) {
+                return intersect_circles (body1.position, body1.radius, body2.position, body2.radius, out normal, out depth);
+            }
+        }
+
+        return false;
+    }
+
+    public static bool intersect_circle_polygon (Vector2 circle_position, float circle_radius, Vector2 polygon_position, Vector2[] vertices, out Vector2 normal, out float depth) {
         float minimum1, maximum1;
         float minimum2, maximum2;
 
@@ -17,7 +134,7 @@ namespace Physv {
             axis = { -edge.y, edge.x };
 
             //  May not be needed
-            axis = Vector2.normalise (axis);
+            //  axis = Vector2.normalise (axis);
             //  May not be needed
 
             project_vertices (vertices, axis, out minimum1, out maximum1);
@@ -38,7 +155,7 @@ namespace Physv {
         axis = Vector2.subtract (vertices[closest_point], circle_position);
 
         //  May not be needed
-        axis = Vector2.normalise (axis);
+        //  axis = Vector2.normalise (axis);
         //  May not be needed
 
         project_vertices (vertices, axis, out minimum1, out maximum1);
@@ -54,11 +171,9 @@ namespace Physv {
         }
 
         //  Need to test perf
-        //  depth /= Vector2.length (normal);
-        //  normal = Vector2.normalise (normal);
+        depth /= Vector2.length (normal);
+        normal = Vector2.normalise (normal);
         //  Need to test perf
-
-        Vector2 polygon_position = find_arithmatic_mean (vertices);
 
         Vector2 direction = Vector2.subtract (polygon_position, circle_position);
 
@@ -69,7 +184,7 @@ namespace Physv {
         return true;
     }
 
-    public static bool intersect_polygons (Vector2[] vertices1, Vector2[] vertices2, out Vector2 normal, out float depth) {
+    public static bool intersect_polygons (Vector2 polygon_position1, Vector2[] vertices1, Vector2 polygon_position2, Vector2[] vertices2, out Vector2 normal, out float depth) {
         float minimum1, maximum1;
         float minimum2, maximum2;
 
@@ -84,7 +199,7 @@ namespace Physv {
             Vector2 axis = { -edge.y, edge.x };
 
             //  May not be needed
-            axis = Vector2.normalise (axis);
+            //  axis = Vector2.normalise (axis);
             //  May not be needed
 
             project_vertices (vertices1, axis, out minimum1, out maximum1);
@@ -108,7 +223,7 @@ namespace Physv {
             Vector2 axis = { -edge.y, edge.x };
 
             //  May not be needed
-            axis = Vector2.normalise (axis);
+            //  axis = Vector2.normalise (axis);
             //  May not be needed
 
             project_vertices (vertices1, axis, out minimum1, out maximum1);
@@ -125,30 +240,17 @@ namespace Physv {
         }
 
         //  Need to test perf
-        //  depth /= Vector2.length (normal);
-        //  normal = Vector2.normalise (normal);
+        depth /= Vector2.length (normal);
+        normal = Vector2.normalise (normal);
         //  Need to test perf
 
-        Vector2 center1 = find_arithmatic_mean (vertices1);
-        Vector2 center2 = find_arithmatic_mean (vertices2);
-
-        Vector2 direction = Vector2.subtract (center2, center1);
+        Vector2 direction = Vector2.subtract (polygon_position2, polygon_position1);
 
         if (Vector2.dot (direction, normal) < 0.0f) {
             normal = { -normal.x, -normal.y };
         }
 
         return true;
-    }
-
-    private static Vector2 find_arithmatic_mean (Vector2[] vertices) {
-        Vector2 sum = Vector2.ZERO;
-
-        for (int i = 0; i < vertices.length; i++) {
-            sum = Vector2.add (sum, vertices[i]);
-        }
-
-        return Vector2.divide_value (sum, vertices.length);
     }
 
     private static void project_vertices (Vector2[] vertices, Vector2 axis, out float minimum, out float maximum) {

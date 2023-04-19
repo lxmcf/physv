@@ -2,12 +2,18 @@ namespace Physv {
     public struct Vector2 {
         public const Vector2 ZERO = { 0.0f, 0.0f };
         public const Vector2 ONE = { 1.0f, 1.0f };
+        public const Vector2 MIN = { float.MIN, float.MIN };
+        public const Vector2 MAX = { float.MAX, float.MAX };
 
         public float x;
         public float y;
 
+        public inline static float length_squared (Vector2 vector) {
+            return (vector.x * vector.x) + (vector.y * vector.y);
+        }
+
         public inline static float length (Vector2 vector) {
-            return Math.sqrtf ((vector.x * vector.x) + (vector.y * vector.y));
+            return Math.sqrtf (Vector2.length_squared (vector));
         }
 
         public inline static Vector2 abs (Vector2 vector) {
@@ -108,11 +114,15 @@ namespace Physv {
             return (vector1.x == vector2.x && vector1.y == vector2.y);
         }
 
-        public inline static float distance (Vector2 vector1, Vector2 vector2) {
+        public inline static float distance_squared (Vector2 vector1, Vector2 vector2) {
             float direction_x = vector2.x - vector1.x;
             float direction_y = vector2.y - vector1.y;
 
-            return Math.sqrtf ((direction_x * direction_x) + (direction_y * direction_y));
+            return (direction_x * direction_x) + (direction_y * direction_y);
+        }
+
+        public inline static float distance (Vector2 vector1, Vector2 vector2) {
+            return Math.sqrtf (distance_squared (vector1, vector2));
         }
     }
 }

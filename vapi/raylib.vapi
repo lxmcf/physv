@@ -1915,7 +1915,7 @@ namespace Raylib {
     [CCode (cname = "TextLength")]
     public static uint text_length (string text);
 
-    [CCode (cname = "TextFormat")]
+    [CCode (cname = "TextFormat", array_null_terminated = false)]
     public static string text_format (string text, ...);
 
     [CCode (cname = "TextSubtext")]
