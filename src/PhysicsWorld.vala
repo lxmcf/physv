@@ -111,7 +111,6 @@ namespace Physv {
             PhysicsBody body2 = manifold.body2;
 
             Vector2 normal = manifold.normal;
-            float depth = manifold.depth;
 
             Vector2 relative_velocity = Vector2.subtract (body2.linear_velocity, body1.linear_velocity);
 

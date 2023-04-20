@@ -1,6 +1,8 @@
 namespace Physv {
     //  TODO: Remove automass
-    private const float MASS_SCALE = 3200.0f;
+    //  private const float MASS_SCALE = 3200.0f;
+
+    private const float MASS_SCALE = 1.0f;
 
     public enum ShapeType {
         CIRCLE = 0,
@@ -21,6 +23,9 @@ namespace Physv {
         public float inverse_mass { public get; private set; }
         public float restitution { public get; private set; }
         public float area { public get; private set; }
+
+        public float inertia { public get; private set; }
+        public float inverse_inertia { public get; private set; }
 
         public bool is_static { public get; private set; }
 
@@ -59,10 +64,14 @@ namespace Physv {
 
             this.shape_type = shape_type;
 
+            this.inertia = calculate_rotational_inertia ();
+
             if (this.is_static) {
                 this.inverse_mass = 0.0f;
+                this.inverse_inertia = 0.0f;
             } else {
                 this.inverse_mass = 1f / this.mass;
+                this.inverse_inertia = 1.0f / inertia;
             }
 
 
@@ -96,6 +105,16 @@ namespace Physv {
 
             transform_update_required = true;
             aabb_update_required = true;
+        }
+
+        private float calculate_rotational_inertia () {
+            if (shape_type == ShapeType.CIRCLE) {
+                return (1.0f / 12.0f) * mass * (radius * radius);
+            } else if (shape_type == ShapeType.BOX) {
+                return (1.0f / 12.0f) * mass * ((width * width) + (height * height));
+            }
+
+            return 0.0f;
         }
 
         public Vector2[] get_transformed_vertices () {

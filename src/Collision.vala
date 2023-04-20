@@ -40,7 +40,7 @@ namespace Physv {
 
         if (shape1 == ShapeType.BOX) {
             if (shape2 == ShapeType.BOX) {
-
+                find_contact_point_polygons (body1.get_transformed_vertices (), body2.get_transformed_vertices (), out contact2, out contact1, out contact_count);
             } else if (shape2 == ShapeType.CIRCLE) {
                 find_contact_point_polygon_circle (body2.position, body2.radius, body1.position, body1.get_transformed_vertices (), out contact1);
 
@@ -55,6 +55,70 @@ namespace Physv {
                 find_contact_point_circles (body1.position, body1.radius, body2.position, out contact1);
 
                 contact_count = 1;
+            }
+        }
+    }
+
+    private static void find_contact_point_polygons (Vector2[] vertices1, Vector2[] vertices2, out Vector2 contact_point1, out Vector2 contact_point2, out int contact_count) {
+        contact_point1 = Vector2.ZERO;
+        contact_point2 = Vector2.ZERO;
+        contact_count = 0;
+
+        float distance;
+        Vector2 contact_point;
+
+        float minimum_distance = float.MAX;
+        float margin = 0.0005f;
+
+        for (int i = 0; i < vertices1.length; i++) {
+            Vector2 point = vertices1[i];
+
+            for (int j = 0; j < vertices2.length; j++) {
+                Vector2 vertex1 = vertices2[j];
+                Vector2 vertex2 = vertices2[(j + 1) % vertices2.length];
+
+                point_segment_distance (point, vertex1, vertex2, out distance, out contact_point);
+
+                bool distance_equals = Math.fabsf (distance - minimum_distance) < margin;
+
+                if (distance_equals) {
+                    if (!Vector2.equals_rough (contact_point, contact_point1)) {
+                        contact_point2 = contact_point;
+
+                        contact_count = 2;
+                    }
+                } else if (distance < minimum_distance) {
+                    minimum_distance = distance;
+                    contact_point1 = contact_point;
+
+                    contact_count = 1;
+                }
+            }
+        }
+
+        for (int i = 0; i < vertices2.length; i++) {
+            Vector2 point = vertices2[i];
+
+            for (int j = 0; j < vertices1.length; j++) {
+                Vector2 vertex1 = vertices1[j];
+                Vector2 vertex2 = vertices1[(j + 1) % vertices1.length];
+
+                point_segment_distance (point, vertex1, vertex2, out distance, out contact_point);
+
+                bool distance_equals = Math.fabsf (distance - minimum_distance) < margin;
+
+                if (distance_equals) {
+                    if (!Vector2.equals_rough (contact_point, contact_point1)) {
+                        contact_point2 = contact_point;
+
+                        contact_count = 2;
+                    }
+                } else if (distance < minimum_distance) {
+                    minimum_distance = distance;
+                    contact_point1 = contact_point;
+
+                    contact_count = 1;
+                }
             }
         }
     }

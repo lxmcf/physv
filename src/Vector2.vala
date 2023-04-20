@@ -110,6 +110,13 @@ namespace Physv {
             return (vector1.x * vector2.x) + (vector1.y * vector2.y);
         }
 
+        public inline static bool equals_rough (Vector2 vector1, Vector2 vector2, float margin = 0.0005f) {
+            bool xaxis = Math.fabsf (vector1.x - vector2.x) < margin;
+            bool yaxis = Math.fabsf (vector1.y - vector2.y) < margin;
+
+            return (xaxis && yaxis);
+        }
+
         public inline static bool equals (Vector2 vector1, Vector2 vector2) {
             return (vector1.x == vector2.x && vector1.y == vector2.y);
         }

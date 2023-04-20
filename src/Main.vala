@@ -6,9 +6,11 @@ namespace Physv {
 
     private PhysicsWorld world;
 
+    private string elapsed_time;
+
     public static int main (string[] args) {
         Raylib.init_window (1280, 768, "Physv test");
-        Raylib.set_target_fps (60);
+        //  Raylib.set_target_fps (60);
 
         init_game ();
 
@@ -30,46 +32,42 @@ namespace Physv {
         colours = new List<Raylib.Color?> ();
         outlines = new List<Raylib.Color?> ();
 
+        //  GROUND
+        colours.append (Raylib.DARKGRAY);
+        outlines.append (Raylib.WHITE);
+
+        //  EDGE 1
+        colours.append (Raylib.DARKGRAY);
+        outlines.append (Raylib.WHITE);
+
+        //  EDGE 2
         colours.append (Raylib.DARKGRAY);
         outlines.append (Raylib.WHITE);
 
         world = new PhysicsWorld ();
 
-        world.add_body (
-            PhysicsBody.create_box_body (1024.0f, 96.0f, { 640.0f, 640.0f }, 1.0f, true, 0.5f)
-        );
+        PhysicsBody ground = PhysicsBody.create_box_body (1024.0f, 96.0f, { 640.0f, 640.0f }, 1.0f, true, 0.5f);
+        PhysicsBody edge1 = PhysicsBody.create_box_body (240.0f, 64.0f, { 240.0f, 240.0f }, 1.0f, true, 0.5f);
+        PhysicsBody edge2 = PhysicsBody.create_box_body (300.0f, 64.0f, { 1040.0f, 360.0f }, 1.0f, true, 0.5f);
+        edge1.rotate (30 * Raylib.DEG2RAD);
+        edge2.rotate (-30 * Raylib.DEG2RAD);
+
+        world.add_body (ground);
+
+        world.add_body (edge1);
+        world.add_body (edge2);
     }
 
     public static void update_game () {
-        //  float direction_x = 0.0f;
-        //  float direction_y = 0.0f;
-
-        //  float force_magnitude = 150.0f;
-
-        //  if (Raylib.is_key_down (Raylib.KeyboardKey.LEFT)) direction_x--;
-        //  if (Raylib.is_key_down (Raylib.KeyboardKey.RIGHT)) direction_x++;
-        //  if (Raylib.is_key_down (Raylib.KeyboardKey.UP)) direction_y--;
-        //  if (Raylib.is_key_down (Raylib.KeyboardKey.DOWN)) direction_y++;
-
-        //  if (direction_x != 0 || direction_y != 0) {
-        //      PhysicsBody body;
-        //      if (world.get_body (0, out body)) {
-        //          Vector2 force_direction = Vector2.normalise ({ direction_x, direction_y });
-        //          Vector2 force = Vector2.multiply_value (force_direction, force_magnitude);
-
-        //          body.add_force (force);
-        //      }
-        //  }
-
         if (Raylib.is_mouse_button_pressed (Raylib.MouseButton.LEFT)) {
             float width = Raylib.get_random_value (24, 64);
             float height = Raylib.get_random_value (24, 64);
 
             Raylib.Vector2 mouse = Raylib.get_mouse_position ();
 
-            world.add_body (
-                PhysicsBody.create_box_body (width, height, { mouse.x, mouse.y } , 1.0f, false, 0.5f)
-            );
+            PhysicsBody body = PhysicsBody.create_box_body (width, height, { mouse.x, mouse.y } , 1.0f, false, 0.5f);
+
+            world.add_body (body);
 
             colours.append ({
                 (uchar)Raylib.get_random_value (0, 255),
@@ -79,6 +77,8 @@ namespace Physv {
             });
 
             outlines.append (Raylib.WHITE);
+
+            print ("Mass: %.3f : Inertia: %.3f\n", body.mass, body.inertia);
         }
 
         if (Raylib.is_mouse_button_pressed (Raylib.MouseButton.RIGHT)) {
@@ -86,9 +86,9 @@ namespace Physv {
 
             Raylib.Vector2 mouse = Raylib.get_mouse_position ();
 
-            world.add_body (
-                PhysicsBody.create_circle_body (radius, { mouse.x, mouse.y }, 1.0f, false, 0.5f)
-            );
+            PhysicsBody body = PhysicsBody.create_circle_body (radius, { mouse.x, mouse.y }, 1.0f, false, 0.5f);
+
+            world.add_body (body);
 
             colours.append ({
                 (uchar)Raylib.get_random_value (0, 255),
@@ -98,9 +98,11 @@ namespace Physv {
             });
 
             outlines.append (Raylib.WHITE);
+
+            print ("Mass: %.3f : Inertia: %.3f\n", body.mass, body.inertia);
         }
 
-        BLOCK_TIMER ("physics step", TimeMeasure.MILLISECONDS, () => {
+        elapsed_time = BLOCK_TIMER ("physics step", TimeMeasure.MILLISECONDS, () => {
             world.step (Raylib.get_frame_time (), 1);
         });
 
@@ -137,11 +139,12 @@ namespace Physv {
         for (int i = 0; i < world.contact_list.length (); i++) {
             Vector2 contact = world.contact_list.nth_data (i);
 
-            Raylib.draw_circle_vector ({ contact.x, contact.y }, 8, Raylib.YELLOW);
+            Raylib.draw_circle_vector ({ contact.x, contact.y }, 8, Raylib.RED);
             Raylib.draw_circle_sector_lines ({ contact.x, contact.y }, 8, 0.0f, 360.0f, 16, Raylib.BLACK);
         }
 
-        Raylib.draw_text ("Body Count: %u".printf (world.body_count), 8, 8, 30, Raylib.WHITE);
+        Raylib.draw_text ("Physics Step: %s ms".printf (elapsed_time), 8, 8, 30, Raylib.WHITE);
+        Raylib.draw_text ("Body Count: %u".printf (world.body_count), 8, 38, 30, Raylib.WHITE);
     }
 
     public static void draw_polygon_outline (Vector2[] vertices, Raylib.Color color) {

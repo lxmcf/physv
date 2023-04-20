@@ -20,7 +20,7 @@ namespace Physv.Debug {
     private static GLib.Timer? _timer;
     private static double _elapsed_time;
 
-    public inline static void BLOCK_TIMER (string id, TimeMeasure time_measure, AnonymousBlock block, out string? time = null) {
+    public inline static string BLOCK_TIMER (string id, TimeMeasure time_measure, AnonymousBlock block) {
         if (_timer == null) _timer = new GLib.Timer ();
 
         _timer.reset ();
@@ -33,10 +33,8 @@ namespace Physv.Debug {
 
         string output_text = "Timer [%s] took %.3f %s!\n";
 
-        if (time == null) {
-            print (output_text, id.up (), _elapsed_time * time_measure, time_measure.to_string ());
-        } else {
-            time = output_text.printf (id.up (), _elapsed_time * time_measure, time_measure.to_string ());
-        }
+        //  print (output_text, id.up (), _elapsed_time * time_measure, time_measure.to_string ());
+
+        return "%.3f".printf (_elapsed_time * time_measure);
     }
 }
