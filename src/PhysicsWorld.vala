@@ -1,9 +1,16 @@
+using Physv.Debug;
+
 namespace Physv {
+    private struct ContactPair {
+        public int contact1;
+        public int contact2;
+    }
+
     public class PhysicsWorld {
         private List<PhysicsBody> body_list;
         private List<Manifold?> manifold_list;
 
-        public List<Vector2?> contact_list;
+        private List<ContactPair?> contact_pairs;
 
         private Vector2 gravity;
 
@@ -17,7 +24,7 @@ namespace Physv {
             body_list = new List<PhysicsBody> ();
             manifold_list = new List<Manifold?> ();
 
-            contact_list = new List<Vector2?> ();
+            contact_pairs = new List<ContactPair?> ();
         }
 
         public void add_body (PhysicsBody body) {
@@ -39,70 +46,90 @@ namespace Physv {
         }
 
         public void step (float time, int iterations) {
+            for (int current_iteraton = 0; current_iteraton < iterations; current_iteraton++) {
+                contact_pairs = new List<ContactPair?> ();
+                manifold_list = new List<Manifold?> ();
+
+                //  Movement Step
+                step_bodies (time, iterations);
+
+                //  Collision step
+                broad_phase ();
+                narrow_phase ();
+            }
+        }
+
+        //  TODO: Optimise... Like crazy
+        private void broad_phase () {
+            AABB body1_aabb;
+            AABB body2_aabb;
+
+            PhysicsBody body1;
+            PhysicsBody body2;
+
+            for (int i = 0; i < body_list.length () - 1; i++) {
+                body1 = body_list.nth_data (i);
+                body1_aabb = body1.get_AABB ();
+
+                for (int j = i + 1; j < body_list.length (); j++) {
+                    body2 = body_list.nth_data (j);
+                    body2_aabb = body2.get_AABB ();
+
+                    if (body1.is_static && body2.is_static) continue;
+
+                    if (!intersect_AABB (body1_aabb, body2_aabb)) continue;
+
+                    contact_pairs.append ({ i, j});
+                }
+            }
+        }
+
+        private void step_bodies (float time, int iterations) {
+            for (int i = 0; i < body_list.length (); i++) {
+                PhysicsBody body = body_list.nth_data (i);
+
+                body.step (time, gravity, iterations);
+            }
+        }
+
+        private void narrow_phase () {
+            ContactPair contact_pair;
+            PhysicsBody body1;
+            PhysicsBody body2;
+
             Vector2 normal;
             float depth;
 
-            contact_list = new List<Vector2?> ();
+            for (int i = 0; i < contact_pairs.length (); i++) {
+                contact_pair = contact_pairs.nth_data (i);
 
-            for (int k = 0; k < iterations; k++) {
-                //  Movement Step
-                for (int i = 0; i < body_list.length (); i++) {
-                    PhysicsBody body = body_list.nth_data (i);
+                body1 = body_list.nth_data (contact_pair.contact1);
+                body2 = body_list.nth_data (contact_pair.contact2);
 
-                    body.step (time, gravity, iterations);
-                }
+                if (collide (body1, body2, out normal, out depth)) {
+                    seperate_bodies (body1, body2, Vector2.multiply_value (normal, depth));
 
-                manifold_list = new List<Manifold?> ();
+                    Manifold manifold = { };
+                    manifold.body1 = body1;
+                    manifold.body2 = body2;
+                    manifold.depth = depth;
+                    manifold.normal = normal;
 
-                //  Collision step
-                for (int i = 0; i < body_list.length () - 1; i++) {
-                    PhysicsBody body1 = body_list.nth_data (i);
-                    AABB body1_aabb = body1.get_AABB ();
-
-                    for (int j = i + 1; j < body_list.length (); j++) {
-                        PhysicsBody body2 = body_list.nth_data (j);
-                        AABB body2_aabb = body2.get_AABB ();
-
-                        if (body1.is_static && body2.is_static) continue;
-
-                        if (!intersect_AABB (body1_aabb, body2_aabb)) continue;
-
-                        if (collide (body1, body2, out normal, out depth)) {
-                            if (body1.is_static) {
-                                body2.move (Vector2.multiply_value (normal, depth));
-                            } else if (body2.is_static) {
-                                body1.move (Vector2.multiply_value ({ -normal.x, -normal.y }, depth / 2));
-                            } else {
-                                body1.move (Vector2.multiply_value ({ -normal.x, -normal.y }, depth / 2));
-                                body2.move (Vector2.multiply_value (normal, depth / 2));
-                            }
-
-                            Manifold manifold = { };
-                            manifold.body1 = body1;
-                            manifold.body2 = body2;
-                            manifold.depth = depth;
-                            manifold.normal = normal;
-
-                            find_contact_points (body1, body2, out manifold.contact1, out manifold.contact2, out manifold.contact_count);
-
-                            manifold_list.append (manifold);
-                        }
-                    }
-                }
-
-                for (int i = 0; i < manifold_list.length (); i++) {
-                    Manifold manifold = manifold_list.nth_data (i);
+                    find_contact_points (body1, body2, out manifold.contact1, out manifold.contact2, out manifold.contact_count);
 
                     resolve_collision (manifold);
-
-                    if (manifold.contact_count > 0) {
-                        contact_list.append (manifold.contact1);
-
-                        if (manifold.contact_count > 1) {
-                            contact_list.append (manifold.contact2);
-                        }
-                    }
                 }
+            }
+        }
+
+        private void seperate_bodies (PhysicsBody body1, PhysicsBody body2, Vector2 minimum_translation) {
+            if (body1.is_static) {
+                body2.move (minimum_translation);
+            } else if (body2.is_static) {
+                body1.move ({ -minimum_translation.x, -minimum_translation.y });
+            } else {
+                body1.move (Vector2.divide_value ({ -minimum_translation.x, -minimum_translation.y }, 2));
+                body2.move (Vector2.divide_value (minimum_translation, 2));
             }
         }
 

@@ -197,10 +197,6 @@ namespace Physv {
             Vector2 edge = Vector2.subtract (vertex2, vertex1);
             axis = { -edge.y, edge.x };
 
-            //  May not be needed
-            //  axis = Vector2.normalise (axis);
-            //  May not be needed
-
             project_vertices (vertices, axis, out minimum1, out maximum1);
             project_circle (circle_position, circle_radius, axis, out minimum2, out maximum2);
 
@@ -217,10 +213,6 @@ namespace Physv {
         int closest_point = closest_point_on_polygon (circle_position, vertices);
 
         axis = Vector2.subtract (vertices[closest_point], circle_position);
-
-        //  May not be needed
-        //  axis = Vector2.normalise (axis);
-        //  May not be needed
 
         project_vertices (vertices, axis, out minimum1, out maximum1);
         project_circle (circle_position, circle_radius, axis, out minimum2, out maximum2);
@@ -262,10 +254,6 @@ namespace Physv {
             Vector2 edge = Vector2.subtract (vertex2, vertex1);
             Vector2 axis = { -edge.y, edge.x };
 
-            //  May not be needed
-            //  axis = Vector2.normalise (axis);
-            //  May not be needed
-
             project_vertices (vertices1, axis, out minimum1, out maximum1);
             project_vertices (vertices2, axis, out minimum2, out maximum2);
 
@@ -285,10 +273,6 @@ namespace Physv {
 
             Vector2 edge = Vector2.subtract (vertex2, vertex1);
             Vector2 axis = { -edge.y, edge.x };
-
-            //  May not be needed
-            //  axis = Vector2.normalise (axis);
-            //  May not be needed
 
             project_vertices (vertices1, axis, out minimum1, out maximum1);
             project_vertices (vertices2, axis, out minimum2, out maximum2);

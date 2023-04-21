@@ -2,7 +2,6 @@ using Physv.Debug;
 
 namespace Physv {
     private List<Raylib.Color?> colours;
-    private List<Raylib.Color?> outlines;
 
     private PhysicsWorld world;
 
@@ -30,19 +29,15 @@ namespace Physv {
 
     public void init_game () {
         colours = new List<Raylib.Color?> ();
-        outlines = new List<Raylib.Color?> ();
 
         //  GROUND
         colours.append (Raylib.DARKGRAY);
-        outlines.append (Raylib.WHITE);
 
         //  EDGE 1
         colours.append (Raylib.DARKGRAY);
-        outlines.append (Raylib.WHITE);
 
         //  EDGE 2
         colours.append (Raylib.DARKGRAY);
-        outlines.append (Raylib.WHITE);
 
         world = new PhysicsWorld ();
 
@@ -75,10 +70,6 @@ namespace Physv {
                 (uchar)Raylib.get_random_value (0, 255),
                 255
             });
-
-            outlines.append (Raylib.WHITE);
-
-            print ("Mass: %.3f : Inertia: %.3f\n", body.mass, body.inertia);
         }
 
         if (Raylib.is_mouse_button_pressed (Raylib.MouseButton.RIGHT)) {
@@ -96,14 +87,10 @@ namespace Physv {
                 (uchar)Raylib.get_random_value (0, 255),
                 255
             });
-
-            outlines.append (Raylib.WHITE);
-
-            print ("Mass: %.3f : Inertia: %.3f\n", body.mass, body.inertia);
         }
 
         elapsed_time = BLOCK_TIMER ("physics step", TimeMeasure.MILLISECONDS, () => {
-            world.step (Raylib.get_frame_time (), 1);
+            world.step (Raylib.get_frame_time (), 8);
         });
 
         for (int i = 0; i < world.body_count; i ++) {
@@ -115,7 +102,6 @@ namespace Physv {
                 if (box.minimum.y >= 768) {
                     world.remove_body (body);
                     colours.remove (colours.nth_data (i));
-                    outlines.remove (outlines.nth_data (i));
                 }
             }
         }
@@ -128,19 +114,12 @@ namespace Physv {
             if (world.get_body (i, out body)) {
                 if (body.shape_type == ShapeType.CIRCLE) {
                     Raylib.draw_circle_vector ({ body.position.x, body.position.y }, body.radius, colours.nth_data (i));
-                    Raylib.draw_circle_sector_lines ({ body.position.x, body.position.y }, body.radius, 0.0f, 360.0f, 26, outlines.nth_data (i));
+                    Raylib.draw_circle_sector_lines ({ body.position.x, body.position.y }, body.radius, 0.0f, 360.0f, 26, Raylib.WHITE);
                 } else if (body.shape_type == ShapeType.BOX) {
                     draw_polygon_filled (body.get_transformed_vertices (), colours.nth_data (i));
-                    draw_polygon_outline (body.get_transformed_vertices (), outlines.nth_data (i));
+                    draw_polygon_outline (body.get_transformed_vertices (), Raylib.WHITE);
                 }
             }
-        }
-
-        for (int i = 0; i < world.contact_list.length (); i++) {
-            Vector2 contact = world.contact_list.nth_data (i);
-
-            Raylib.draw_circle_vector ({ contact.x, contact.y }, 8, Raylib.RED);
-            Raylib.draw_circle_sector_lines ({ contact.x, contact.y }, 8, 0.0f, 360.0f, 16, Raylib.BLACK);
         }
 
         Raylib.draw_text ("Physics Step: %s ms".printf (elapsed_time), 8, 8, 30, Raylib.WHITE);

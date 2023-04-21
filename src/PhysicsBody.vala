@@ -13,8 +13,8 @@ namespace Physv {
         public Vector2 position { public get; private set; }
         public Vector2 linear_velocity { public get; internal set; }
 
-        private float rotation;
-        private float rotational_velocity;
+        private float angle;
+        private float angular_velocity;
 
         private Vector2 force;
 
@@ -37,18 +37,17 @@ namespace Physv {
         private Vector2[] transformed_vertices;
 
         private AABB aabb;
-        //  public int[] indices;
 
         private bool transform_update_required;
         private bool aabb_update_required;
 
         public ShapeType shape_type { public get; private set; }
 
-        private PhysicsBody (Vector2 position, float density, float mass, float restitution, float area, bool is_static, float radius, float width, float height, ShapeType shape_type) {
+        private PhysicsBody (Vector2 position, float density, float mass, float inertia, float restitution, float area, bool is_static, float radius, float width, float height, Vector2[] vertices, ShapeType shape_type) {
             this.position = position;
             this.linear_velocity = Vector2.ZERO;
-            this.rotation = 0.0f;
-            this.rotational_velocity = 0.0f;
+            this.angle = 0.0f;
+            this.angular_velocity = 0.0f;
 
             this.force = Vector2.ZERO;
 
@@ -64,62 +63,34 @@ namespace Physv {
 
             this.shape_type = shape_type;
 
-            this.inertia = calculate_rotational_inertia ();
+            this.inertia = inertia;
 
             if (this.is_static) {
                 this.inverse_mass = 0.0f;
                 this.inverse_inertia = 0.0f;
             } else {
-                this.inverse_mass = 1f / this.mass;
+                this.inverse_mass = 1.0f / this.mass;
                 this.inverse_inertia = 1.0f / inertia;
             }
 
+            print ("Mass: %.3f : Inertia: %.3f\n", mass, inertia);
+
 
             if (shape_type == ShapeType.BOX) {
-                float left = -width / 2.0f;
-                float right = left + width;
-
-                float top = -height / 2.0f;
-                float bottom = top + height;
-
-                vertices = new Vector2[4];
-                vertices[0] = { left, top };
-                vertices[1] = { right, top };
-                vertices[2] = { right, bottom };
-                vertices[3] = { left, bottom };
-
+                this.vertices = vertices;
                 transformed_vertices = new Vector2[4];
-
-                //  indices = new int[6];
-                //  indices[0] = 0;
-                //  indices[1] = 1;
-                //  indices[2] = 2;
-                //  indices[3] = 0;
-                //  indices[4] = 2;
-                //  indices[5] = 3;
             } else {
                 vertices = null;
                 transformed_vertices = null;
-                //  indices = null;
             }
 
             transform_update_required = true;
             aabb_update_required = true;
         }
 
-        private float calculate_rotational_inertia () {
-            if (shape_type == ShapeType.CIRCLE) {
-                return (1.0f / 12.0f) * mass * (radius * radius);
-            } else if (shape_type == ShapeType.BOX) {
-                return (1.0f / 12.0f) * mass * ((width * width) + (height * height));
-            }
-
-            return 0.0f;
-        }
-
         public Vector2[] get_transformed_vertices () {
             if (transform_update_required) {
-                Transform transform = Transform (position, rotation);
+                Transform transform = Transform (position, angle);
 
                 for (int i = 0; i < vertices.length; i++) {
                     transformed_vertices[i] = Vector2.transform (vertices[i], transform);
@@ -165,8 +136,8 @@ namespace Physv {
         }
 
         internal void step (float time, Vector2 gravity, int iterations) {
-            //  Vector2 acceleration = Vector2.divide_value (force, mass);
-            //  linear_velocity = Vector2.add (linear_velocity, Vector2.multiply_value (acceleration, time));
+            Vector2 acceleration = Vector2.divide_value (force, mass);
+            linear_velocity = Vector2.add (linear_velocity, Vector2.multiply_value (acceleration, time));
 
             if (is_static) return;
 
@@ -176,7 +147,7 @@ namespace Physv {
 
             position = Vector2.add (position, Vector2.multiply_value (linear_velocity, time));
 
-            rotation += rotational_velocity * time;
+            angle += angular_velocity * time;
 
             force = Vector2.ZERO;
             transform_update_required = true;
@@ -196,7 +167,13 @@ namespace Physv {
         }
 
         public void rotate (float amount) {
-            rotation += amount;
+            angle += amount;
+            transform_update_required = true;
+            aabb_update_required = true;
+        }
+
+        public void rotate_to (float amount) {
+            angle = amount;
             transform_update_required = true;
             aabb_update_required = true;
         }
@@ -207,16 +184,32 @@ namespace Physv {
 
         public static PhysicsBody create_box_body (float width, float height, Vector2 position, float density, bool is_static, float restitution) {
             float area = width * height;
-            float mass = area * density;
 
-            return new PhysicsBody (position, density, mass / MASS_SCALE, restitution, area, is_static, 0.0f, width, height, ShapeType.BOX);
+            float mass = area * density;
+            float inertia = (1.0f / 12.0f) * mass * ((width * width) + (height * height));
+
+            float left = -width / 2.0f;
+            float right = left + width;
+
+            float top = -height / 2.0f;
+            float bottom = top + height;
+
+            Vector2[] vertices = new Vector2[4];
+            vertices[0] = { left, top };
+            vertices[1] = { right, top };
+            vertices[2] = { right, bottom };
+            vertices[3] = { left, bottom };
+
+            return new PhysicsBody (position, density, mass, inertia, restitution, area, is_static, 0.0f, width, height, vertices, ShapeType.BOX);
         }
 
         public static PhysicsBody create_circle_body (float radius, Vector2 position, float density, bool is_static, float restitution) {
             float area = radius * radius * (float)Math.PI;
-            float mass = area * density;
 
-            return new PhysicsBody (position, density, mass / MASS_SCALE, restitution, area, is_static, radius, 0.0f, 0.0f, ShapeType.CIRCLE);
+            float mass = area * density;
+            float inertia = (1.0f / 12.0f) * mass * (radius * radius);
+
+            return new PhysicsBody (position, density, mass, inertia, restitution, area, is_static, radius, 0.0f, 0.0f, { }, ShapeType.CIRCLE);
         }
     }
 }
