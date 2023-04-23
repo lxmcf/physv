@@ -40,7 +40,7 @@ namespace Physv {
 
         if (shape1 == ShapeType.BOX) {
             if (shape2 == ShapeType.BOX) {
-                find_contact_point_polygons (body1.get_transformed_vertices (), body2.get_transformed_vertices (), out contact2, out contact1, out contact_count);
+                find_contact_point_polygons (body1.get_transformed_vertices (), body2.get_transformed_vertices (), out contact1, out contact2, out contact_count);
             } else if (shape2 == ShapeType.CIRCLE) {
                 find_contact_point_polygon_circle (body2.position, body2.radius, body1.position, body1.get_transformed_vertices (), out contact1);
 
@@ -196,6 +196,7 @@ namespace Physv {
 
             Vector2 edge = Vector2.subtract (vertex2, vertex1);
             axis = { -edge.y, edge.x };
+            axis = Vector2.normalise (axis);
 
             project_vertices (vertices, axis, out minimum1, out maximum1);
             project_circle (circle_position, circle_radius, axis, out minimum2, out maximum2);
@@ -213,6 +214,7 @@ namespace Physv {
         int closest_point = closest_point_on_polygon (circle_position, vertices);
 
         axis = Vector2.subtract (vertices[closest_point], circle_position);
+        axis = Vector2.normalise (axis);
 
         project_vertices (vertices, axis, out minimum1, out maximum1);
         project_circle (circle_position, circle_radius, axis, out minimum2, out maximum2);
@@ -227,8 +229,8 @@ namespace Physv {
         }
 
         //  Need to test perf
-        depth /= Vector2.length (normal);
-        normal = Vector2.normalise (normal);
+        //  depth /= Vector2.length (normal);
+        //  normal = Vector2.normalise (normal);
         //  Need to test perf
 
         Vector2 direction = Vector2.subtract (polygon_position, circle_position);
@@ -253,6 +255,7 @@ namespace Physv {
 
             Vector2 edge = Vector2.subtract (vertex2, vertex1);
             Vector2 axis = { -edge.y, edge.x };
+            axis = Vector2.normalise (axis);
 
             project_vertices (vertices1, axis, out minimum1, out maximum1);
             project_vertices (vertices2, axis, out minimum2, out maximum2);
@@ -273,6 +276,7 @@ namespace Physv {
 
             Vector2 edge = Vector2.subtract (vertex2, vertex1);
             Vector2 axis = { -edge.y, edge.x };
+            axis = Vector2.normalise (axis);
 
             project_vertices (vertices1, axis, out minimum1, out maximum1);
             project_vertices (vertices2, axis, out minimum2, out maximum2);
@@ -288,8 +292,8 @@ namespace Physv {
         }
 
         //  Need to test perf
-        depth /= Vector2.length (normal);
-        normal = Vector2.normalise (normal);
+        //  depth /= Vector2.length (normal);
+        //  normal = Vector2.normalise (normal);
         //  Need to test perf
 
         Vector2 direction = Vector2.subtract (polygon_position2, polygon_position1);

@@ -19,7 +19,7 @@ namespace Physv {
         }
 
         public PhysicsWorld () {
-            gravity = { 0.0f, 200.0f };
+            gravity = { 0.0f, 9.81f };
 
             body_list = new List<PhysicsBody> ();
             manifold_list = new List<Manifold?> ();

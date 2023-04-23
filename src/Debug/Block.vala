@@ -31,7 +31,7 @@ namespace Physv.Debug {
 
         string output_text = "Timer [%s] took %.3f %s!\n";
 
-        print (output_text, id.up (), elapsed_time * time_measure, time_measure.to_string ());
+        //  print (output_text, id.u-p (), elapsed_time * time_measure, time_measure.to_string ());
 
         return "%.3f".printf (elapsed_time * time_measure);
     }

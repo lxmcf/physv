@@ -33,12 +33,14 @@ add_project_arguments (cc_arguments, language: 'c')
 project_source = files (
     'src/Debug/Block.vala',
 
+    'src/Entity.vala',
     'src/Vector2.vala',
     'src/Transform.vala',
     'src/Colour.vala',
     'src/Collision.vala',
     'src/AABB.vala',
     'src/Manifold.vala',
+    'src/Shapes.vala',
 
     'src/PhysicsBody.vala',
     'src/PhysicsWorld.vala',

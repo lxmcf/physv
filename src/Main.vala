@@ -1,7 +1,10 @@
 using Physv.Debug;
 
+private const int PHYSICS_SCALE = 32;
+private const int WORLD_STEPS = 8;
+
 namespace Physv {
-    private List<Raylib.Color?> colours;
+    private List<Entity> entities;
 
     private PhysicsWorld world;
 
@@ -9,7 +12,7 @@ namespace Physv {
 
     public static int main (string[] args) {
         Raylib.init_window (1280, 768, "Physv test");
-        //  Raylib.set_target_fps (60);
+        Raylib.set_target_fps (60);
 
         init_game ();
 
@@ -28,124 +31,76 @@ namespace Physv {
     }
 
     public void init_game () {
-        colours = new List<Raylib.Color?> ();
-
-        //  GROUND
-        colours.append (Raylib.DARKGRAY);
-
-        //  EDGE 1
-        colours.append (Raylib.DARKGRAY);
-
-        //  EDGE 2
-        colours.append (Raylib.DARKGRAY);
-
+        entities = new List<Entity> ();
         world = new PhysicsWorld ();
 
-        PhysicsBody ground = PhysicsBody.create_box_body (1024.0f, 96.0f, { 640.0f, 640.0f }, 1.0f, true, 0.5f);
-        PhysicsBody edge1 = PhysicsBody.create_box_body (240.0f, 64.0f, { 240.0f, 240.0f }, 1.0f, true, 0.5f);
-        PhysicsBody edge2 = PhysicsBody.create_box_body (300.0f, 64.0f, { 1040.0f, 360.0f }, 1.0f, true, 0.5f);
-        edge1.rotate (30 * Raylib.DEG2RAD);
-        edge2.rotate (-30 * Raylib.DEG2RAD);
+        PhysicsBody ground = PhysicsBody.create_box_body (32.0f, 3.0f, 1.0f, true, 0.5f);
+        ground.move_to ({ 20.0f, 20.0f });
+        entities.append (new Entity (world, ground, Raylib.DARKGRAY));
 
-        world.add_body (ground);
+        PhysicsBody edge1 = PhysicsBody.create_box_body (10.0f, 2.0f, 1.0f, true, 0.5f);
+        edge1.move_to ({ 7.5f, 7.5f });
+        edge1.rotate ((float)Math.PI_2 / 20f);
+        entities.append (new Entity (world, edge1, Raylib.DARKGRAY));
 
-        world.add_body (edge1);
-        world.add_body (edge2);
+        PhysicsBody edge2 = PhysicsBody.create_box_body (15.0f, 2.0f, 1.0f, true, 0.5f);
+        edge2.move_to ({ 32.0f, 11.25f });
+        edge2.rotate (-(float)Math.PI_2 / 20f); // vala-lint=space-before-paren
+        entities.append (new Entity (world, edge2, Raylib.DARKGRAY));
     }
 
     public static void update_game () {
         if (Raylib.is_mouse_button_pressed (Raylib.MouseButton.LEFT)) {
-            float width = Raylib.get_random_value (24, 64);
-            float height = Raylib.get_random_value (24, 64);
+            float width = (float)Random.double_range (2, 3);
+            float height = (float)Random.double_range (2, 3);
 
             Raylib.Vector2 mouse = Raylib.get_mouse_position ();
 
-            PhysicsBody body = PhysicsBody.create_box_body (width, height, { mouse.x, mouse.y } , 1.0f, false, 0.5f);
-
-            world.add_body (body);
-
-            colours.append ({
-                (uchar)Raylib.get_random_value (0, 255),
-                (uchar)Raylib.get_random_value (0, 255),
-                (uchar)Raylib.get_random_value (0, 255),
-                255
-            });
+            Entity box = new Entity.box (world, width, height, false, { mouse.x / 32.0f, mouse.y / 32.0f });
+            entities.append (box);
         }
 
         if (Raylib.is_mouse_button_pressed (Raylib.MouseButton.RIGHT)) {
-            float radius = Raylib.get_random_value (16, 32);
+            float radius = (float)Random.double_range (1, 1.25);
 
             Raylib.Vector2 mouse = Raylib.get_mouse_position ();
 
-            PhysicsBody body = PhysicsBody.create_circle_body (radius, { mouse.x, mouse.y }, 1.0f, false, 0.5f);
-
-            world.add_body (body);
-
-            colours.append ({
-                (uchar)Raylib.get_random_value (0, 255),
-                (uchar)Raylib.get_random_value (0, 255),
-                (uchar)Raylib.get_random_value (0, 255),
-                255
-            });
+            Entity circle = new Entity.circle (world, radius, false, { mouse.x / 32.0f, mouse.y / 32.0f });
+            entities.append (circle);
         }
 
         elapsed_time = BLOCK_TIMER ("physics step", TimeMeasure.MILLISECONDS, () => {
-            world.step (Raylib.get_frame_time (), 8);
+            world.step (Raylib.get_frame_time (), WORLD_STEPS);
         });
 
-        for (int i = 0; i < world.body_count; i ++) {
-            PhysicsBody body;
+        int body_count = 0;
 
-            if (world.get_body (i, out body)) {
-                AABB box = body.get_AABB ();
+        for (int i = 0; i < entities.length (); i ++) {
+            Entity entity = entities.nth_data (i);
+            PhysicsBody body = entity.body;
 
-                if (box.minimum.y >= 768) {
-                    world.remove_body (body);
-                    colours.remove (colours.nth_data (i));
-                }
+            if (body.is_static) continue;
+
+            AABB box = body.get_AABB ();
+
+            if (box.minimum.y >= Raylib.get_render_height () / 32) {
+                body_count++;
+
+                world.remove_body (entity.body);
+                entities.remove (entity);
             }
         }
     }
 
     public static void draw_game () {
-        for (int i = 0; i < world.body_count; i++) {
-            PhysicsBody body;
+        for (int i = 0; i < entities.length (); i++) {
+            Entity entity = entities.nth_data (i);
 
-            if (world.get_body (i, out body)) {
-                if (body.shape_type == ShapeType.CIRCLE) {
-                    Raylib.draw_circle_vector ({ body.position.x, body.position.y }, body.radius, colours.nth_data (i));
-                    Raylib.draw_circle_sector_lines ({ body.position.x, body.position.y }, body.radius, 0.0f, 360.0f, 26, Raylib.WHITE);
-                } else if (body.shape_type == ShapeType.BOX) {
-                    draw_polygon_filled (body.get_transformed_vertices (), colours.nth_data (i));
-                    draw_polygon_outline (body.get_transformed_vertices (), Raylib.WHITE);
-                }
-            }
+            entity.draw ();
         }
 
         Raylib.draw_text ("Physics Step: %s ms".printf (elapsed_time), 8, 8, 30, Raylib.WHITE);
-        Raylib.draw_text ("Body Count: %u".printf (world.body_count), 8, 38, 30, Raylib.WHITE);
-    }
-
-    public static void draw_polygon_outline (Vector2[] vertices, Raylib.Color color) {
-        for (int i = 0; i < vertices.length; i++) {
-            Vector2 start = vertices[i];
-            Vector2 end = vertices[(i + 1) % vertices.length];
-
-            Raylib.draw_line_vector ({ start.x, start.y }, { end.x, end.y }, color);
-        }
-    }
-
-    //  NOTE: This is from ChatGPT and very scuffed
-    public static void draw_polygon_filled (Vector2[] vertices, Raylib.Color color) {
-        Vector2 pivot = vertices[0];
-
-        for (int i = vertices.length - 1; i > 1 ; i--) {
-            Raylib.draw_triangle (
-                { pivot.x, pivot.y },
-                { vertices[i].x, vertices[i].y },
-                { vertices[i - 1].x, vertices[i - 1].y },
-                color
-            );
-        }
+        Raylib.draw_text ("Entity Count: %u".printf (entities.length ()), 8, 38, 30, Raylib.WHITE);
+        Raylib.draw_text ("Body Count: %u".printf (world.body_count), 8, 68, 30, Raylib.WHITE);
     }
 }

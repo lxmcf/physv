@@ -32,6 +32,10 @@ namespace Physv {
             };
         }
 
+        public inline static float cross (Vector2 vector1, Vector2 vector2) {
+            return (vector1.x * vector2.y) + (vector1.y * vector2.x);
+        }
+
         public inline static Vector2 transform (Vector2 vector, Transform transform) {
             float rotation_x = (transform.cos * vector.x) - (transform.sin * vector.y);
             float rotation_y = (transform.sin * vector.x) + (transform.cos * vector.y);
@@ -110,11 +114,10 @@ namespace Physv {
             return (vector1.x * vector2.x) + (vector1.y * vector2.y);
         }
 
-        public inline static bool equals_rough (Vector2 vector1, Vector2 vector2, float margin = 0.0005f) {
-            bool xaxis = Math.fabsf (vector1.x - vector2.x) < margin;
-            bool yaxis = Math.fabsf (vector1.y - vector2.y) < margin;
+        public inline static bool equals_rough (Vector2 vector1, Vector2 vector2) {
+            float margin = 0.0005f;
 
-            return (xaxis && yaxis);
+            return (distance_squared (vector1, vector2) < (margin * margin));
         }
 
         public inline static bool equals (Vector2 vector1, Vector2 vector2) {
@@ -122,8 +125,8 @@ namespace Physv {
         }
 
         public inline static float distance_squared (Vector2 vector1, Vector2 vector2) {
-            float direction_x = vector2.x - vector1.x;
-            float direction_y = vector2.y - vector1.y;
+            float direction_x = vector1.x - vector2.x;
+            float direction_y = vector1.y - vector2.y;
 
             return (direction_x * direction_x) + (direction_y * direction_y);
         }
