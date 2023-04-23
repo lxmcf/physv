@@ -8,8 +8,8 @@ namespace Physv {
         public Vector2 position { public get; private set; }
         public Vector2 linear_velocity { public get; internal set; }
 
-        private float angle;
-        private float angular_velocity;
+        public float angle;
+        public float angular_velocity;
 
         private Vector2 force;
 
@@ -179,8 +179,8 @@ namespace Physv {
         public static PhysicsBody create_box_body (float width, float height, float density, bool is_static, float restitution) {
             float area = width * height;
 
-            float mass = 0;
-            float inertia = 0;
+            float mass = float.MAX;
+            float inertia = float.MAX;
 
             if (!is_static) {
                 mass = area * density;
@@ -205,8 +205,8 @@ namespace Physv {
         public static PhysicsBody create_circle_body (float radius, float density, bool is_static, float restitution) {
             float area = radius * radius * (float)Math.PI;
 
-            float mass = 0f;
-            float inertia = 0.0f;
+            float mass = float.MAX;
+            float inertia = float.MAX;
 
             if (!is_static) {
                 mass = area * density;

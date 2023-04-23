@@ -64,9 +64,6 @@ namespace Physv {
         contact_point2 = Vector2.ZERO;
         contact_count = 0;
 
-        float distance;
-        Vector2 contact_point;
-
         float minimum_distance = float.MAX;
         float margin = 0.0005f;
 
@@ -76,6 +73,9 @@ namespace Physv {
             for (int j = 0; j < vertices2.length; j++) {
                 Vector2 vertex1 = vertices2[j];
                 Vector2 vertex2 = vertices2[(j + 1) % vertices2.length];
+
+                float distance;
+                Vector2 contact_point;
 
                 point_segment_distance (point, vertex1, vertex2, out distance, out contact_point);
 
@@ -102,6 +102,9 @@ namespace Physv {
             for (int j = 0; j < vertices1.length; j++) {
                 Vector2 vertex1 = vertices1[j];
                 Vector2 vertex2 = vertices1[(j + 1) % vertices1.length];
+
+                float distance;
+                Vector2 contact_point;
 
                 point_segment_distance (point, vertex1, vertex2, out distance, out contact_point);
 

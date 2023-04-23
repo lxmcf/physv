@@ -8,6 +8,11 @@ namespace Physv {
         public float x;
         public float y;
 
+
+        public inline Vector2 inverse {
+            get { return { -x, -y }; }
+        }
+
         public inline static float length_squared (Vector2 vector) {
             return (vector.x * vector.x) + (vector.y * vector.y);
         }

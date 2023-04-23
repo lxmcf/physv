@@ -32,6 +32,15 @@ namespace Physv {
             if (body.shape_type == ShapeType.CIRCLE) {
                 Raylib.draw_circle_vector ({ body.position.x * PHYSICS_SCALE, body.position.y * PHYSICS_SCALE }, body.radius * PHYSICS_SCALE, colour);
                 Raylib.draw_circle_lines ((int)(body.position.x * PHYSICS_SCALE), (int)(body.position.y * PHYSICS_SCALE), body.radius * PHYSICS_SCALE, Raylib.WHITE);
+
+                Vector2 start = Vector2.ZERO;
+                Vector2 end = { body.radius, 0.0f };
+
+                Transform transform = Transform (body.position, body.angle);
+                start = Vector2.transform (start, transform);
+                end = Vector2.transform (end, transform);
+
+                Raylib.draw_line_vector ({ start.x * PHYSICS_SCALE, start.y * PHYSICS_SCALE }, { end.x * PHYSICS_SCALE, end.y * PHYSICS_SCALE }, Raylib.WHITE);
             } else if (body.shape_type == ShapeType.BOX) {
                 draw_polygon_filled (body.get_transformed_vertices (), colour);
                 draw_polygon_outline (body.get_transformed_vertices (), Raylib.WHITE);
