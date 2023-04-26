@@ -38,7 +38,7 @@ namespace Physv {
         }
 
         public inline static float cross (Vector2 vector1, Vector2 vector2) {
-            return (vector1.x * vector2.y) + (vector1.y * vector2.x);
+            return (vector1.x * vector2.y) - (vector1.y * vector2.x);
         }
 
         public inline static Vector2 transform (Vector2 vector, Transform transform) {

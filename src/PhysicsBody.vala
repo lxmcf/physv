@@ -28,6 +28,9 @@ namespace Physv {
         public float width { public get; private set; }
         public float height { public get; private set; }
 
+        public float static_friction;
+        public float dynamic_friction;
+
         private Vector2[] vertices;
         private Vector2[] transformed_vertices;
 
@@ -59,6 +62,9 @@ namespace Physv {
             this.shape_type = shape_type;
 
             this.inertia = inertia;
+
+            this.static_friction = 0.6f;
+            this.dynamic_friction = 0.4f;
 
             print ("Mass: %.3f : Inertia: %.3f\n", mass, inertia);
 
@@ -130,8 +136,8 @@ namespace Physv {
         }
 
         internal void step (float time, Vector2 gravity, int iterations) {
-            //  Vector2 acceleration = Vector2.divide_value (force, mass);
-            //  linear_velocity = Vector2.add (linear_velocity, Vector2.multiply_value (acceleration, time));
+            Vector2 acceleration = Vector2.divide_value (force, mass);
+            linear_velocity = Vector2.add (linear_velocity, Vector2.multiply_value (acceleration, time));
 
             if (is_static) return;
 
@@ -143,7 +149,7 @@ namespace Physv {
 
             angle += angular_velocity * time;
 
-            //  force = Vector2.ZERO;
+            force = Vector2.ZERO;
             transform_update_required = true;
             aabb_update_required = true;
         }
@@ -179,6 +185,7 @@ namespace Physv {
         public static PhysicsBody create_box_body (float width, float height, float density, bool is_static, float restitution) {
             float area = width * height;
 
+            //  TODO: Work out why this needs to be more than 0
             float mass = float.MAX;
             float inertia = float.MAX;
 
@@ -205,6 +212,7 @@ namespace Physv {
         public static PhysicsBody create_circle_body (float radius, float density, bool is_static, float restitution) {
             float area = radius * radius * (float)Math.PI;
 
+            //  TODO: Work out why this needs to be more than 0
             float mass = float.MAX;
             float inertia = float.MAX;
 
