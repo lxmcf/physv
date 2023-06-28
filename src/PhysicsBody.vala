@@ -63,14 +63,12 @@ namespace Physv {
 
             this.inertia = inertia;
 
-            this.static_friction = 0.6f;
-            this.dynamic_friction = 0.4f;
-
-            print ("Mass: %.3f : Inertia: %.3f\n", mass, inertia);
+            this.static_friction = 0.8f;
+            this.dynamic_friction = 0.6f;
 
             if (!is_static) {
                 inverse_mass = 1f / mass;
-                inverse_inertia = 1f/ inertia;
+                inverse_inertia = 1f / inertia;
             } else {
                 inverse_mass = 0;
                 inverse_inertia = 0;
